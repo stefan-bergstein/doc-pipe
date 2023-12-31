@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: {{ .Values.app.name }}-run
+  namespace: {{ .Values.app.namespace }}
+  finalizers:
+    - chains.tekton.dev/pipelinerun
+  labels:
+    tekton.dev/pipeline: {{ .Values.app.name }}
+spec:
+  params:
+    - name: source-repo
+      value: {{ .Values.docs.repo }}
+    - name: docs-path
+      value: {{ .Values.docs.path }}
+    - name: source-branch
+      value: {{ .Values.docs.branch }}
+    - name: entity
+      value: {{ .Values.docs.entity }}      
+  pipelineRef:
+    name: {{ .Values.app.name }}
+  serviceAccountName: pipeline
+  timeouts:
+    pipeline: 1h0m0s
+  workspaces:
+    - name: source-folder
+      persistentVolumeClaim:
+        claimName: {{ .Values.app.name }}-pvc1

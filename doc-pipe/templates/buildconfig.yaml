@@ -1,0 +1,39 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: {{ .Values.image.name }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    component: {{ .Values.app.name }}
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: {{ .Values.app.name }}
+    component: {{ .Values.app.name }}
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}  
+spec:
+  strategy:
+    dockerStrategy:
+      dockerfilePath: Containerfile
+    type: Docker
+  source:
+    contextDir: .
+    git:
+      uri: {{ .Values.git.repo }}
+    type: Git
+  output:
+    to:
+      kind: ImageStreamTag
+      name: {{ .Values.image.name }}:{{ .Values.image.tag }}
+  runPolicy: Serial
+  triggers:
+  - type: ConfigChange
+  successfulBuildsHistoryLimit: 3
+  postCommit: {}
+  resources: {}

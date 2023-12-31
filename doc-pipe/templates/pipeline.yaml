@@ -1,0 +1,81 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+spec:
+  params:
+    - description: source repo that contains the docs code
+      name: source-repo
+      type: string
+    - default: docs
+      name: docs-path
+      type: string
+    - name: entity
+      type: string      
+    - default: main
+      description: source branch to build from
+      name: source-branch
+      type: string
+  tasks:
+    - name: git-clone
+      params:
+        - name: url
+          value: $(params.source-repo)
+        - name: revision
+          value: $(params.source-branch)
+        - name: refspec
+          value: ''
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: crtFileName
+          value: ca-bundle.crt
+        - name: subdirectory
+          value: ''
+        - name: sparseCheckoutDirectories
+          value: ''
+        - name: deleteExisting
+          value: 'true'
+        - name: httpProxy
+          value: ''
+        - name: httpsProxy
+          value: ''
+        - name: noProxy
+          value: ''
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:a652e2fec41694745977d385c845244db3819acca926d85a52c77515f1f2e612
+        - name: userHome
+          value: /home/git
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source-folder
+    - name: doc-pipe-techdocs
+      params:
+        - name: docs-path
+          value: $(params.docs-path)
+        - name: entity
+          value: $(params.entity)
+        - name: s3-env-secret-name
+          value: s3-env
+        - name: current-namespace
+          value: $(context.pipelineRun.namespace)
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: Task
+        name: doc-pipe-techdocs
+      workspaces:
+        - name: workspace
+          workspace: source-folder
+  workspaces:
+    - name: source-folder
